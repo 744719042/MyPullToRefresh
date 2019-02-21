@@ -4,22 +4,28 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.RelativeLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import com.example.recyclerviewex.utils.Utils;
 
-public class PullRefreshView extends LinearLayout {
+public class PullRefreshView extends FrameLayout {
     private static final String TAG = "PullRefreshView";
 
     private View mHeaderView;
     private View mContentView;
-    private boolean mFirstInit = true;
     private static final int MAX_PULL_LENGTH = Utils.dp2px(200);
     private static final long MAX_GOBACK_DURATION = 200;
 
@@ -29,6 +35,7 @@ public class PullRefreshView extends LinearLayout {
     private static final int REFRESH_REFRESHING = 3; // 正在刷新
     private int mState = REFRESH_IDLE;
     private int mHeaderHeight;
+    private int mTouchSlop;
 
     public interface RefreshListener {
         void onRefresh();
@@ -51,7 +58,6 @@ public class PullRefreshView extends LinearLayout {
 
     private void init() {
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
-        setOrientation(VERTICAL);
     }
 
     @Override
@@ -78,105 +84,50 @@ public class PullRefreshView extends LinearLayout {
 
     private void initViews() {
         if (getChildCount() != 2) {
-            throw new IllegalArgumentException("");
+            throw new IllegalArgumentException("子控件必须只有一个");
         }
         mHeaderView = getChildAt(0);
         mContentView = getChildAt(1);
 
-        LinearLayout.LayoutParams headerParams = (LayoutParams) mHeaderView.getLayoutParams();
-        mHeaderView.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
-                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-        mHeaderHeight = mHeaderView.getMeasuredHeight();
-        headerParams.topMargin = -mHeaderHeight;
-        headerParams.leftMargin = headerParams.rightMargin = headerParams.bottomMargin = 0;
+        mHeaderView.measure(0, 0);
+        mHeaderHeight = Utils.dp2px(100);
+        removeView(mHeaderView);
+        setHeaderPaddingTop(-mHeaderHeight);
 
-        LinearLayout.LayoutParams contentParams = (LayoutParams) mContentView.getLayoutParams();
+        FrameLayout.LayoutParams contentParams = (LayoutParams) mContentView.getLayoutParams();
         contentParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
         contentParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
-    }
+        removeView(mContentView);
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        if (mFirstInit && (mHeaderView == null || mContentView == null)) {
-            initViews();
-            mFirstInit = false;
+        if (mContentView instanceof ListView) {
+            mContentView = new InternalListView(getContext(), (ListView) mContentView);
+        } else if (mContentView instanceof ScrollView) {
+            mContentView = new InternalScrollView(getContext());
         }
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+
+        mContentView.setLayoutParams(contentParams);
+        addView(mContentView);
     }
 
-    @Override
-    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        super.onLayout(changed, left, top, right, bottom);
+    private void setHeaderPaddingTop(int top) {
+        mHeaderView.setPadding(0, top, 0, 0);
+        mHeaderView.requestLayout();
     }
-
-    private int mDownY;
-    private int mLastY;
-    private int mTouchSlop;
-    private boolean mIsDragging = false;
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        int action = event.getActionMasked();
-        int y = (int) event.getRawY();
-        Log.e(TAG, "y = " + y);
-        switch (action) {
-            case MotionEvent.ACTION_DOWN:
-                mDownY = y;
-                break;
-            case MotionEvent.ACTION_MOVE:
-                int motionY = y - mDownY;
-                int diff = y - mLastY;
-                if (!mIsDragging && Math.abs(motionY) > mTouchSlop && ((motionY > 0 && isFirstAtTop()) ||
-                        isFirstAtTop() && motionY < 0 && getHeaderMarginTop() > -mHeaderHeight)) {
-                    mIsDragging = true;
-                    event.setAction(MotionEvent.ACTION_CANCEL);
-                    super.dispatchTouchEvent(event);
-                }
-
-                if (mIsDragging) {
-                    mState = REFRESH_PULL;
-                    offsetHeader(diff);
-                }
-                break;
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                mIsDragging = false;
-                if (isPulling()) {
-                    mState = REFRESH_RELEASED;
-                    if (shouldRefresh()) {
-                        mState = REFRESH_REFRESHING;
-                        goBackAndShowRefresh();
-                    } else {
-                        headerGoBack();
-                    }
-                }
-                break;
-        }
-        mLastY = y;
-        return mIsDragging || super.dispatchTouchEvent(event);
-    }
-
-    public boolean isFirstAtTop() {
-        Log.e(TAG, "scrollY = " + mContentView.getScrollY());
-        return mContentView.getScrollY() <= 0;
-    }
-
 
     private void goBackAndShowRefresh() {
         if (!isRefreshing()) {
             return;
         }
 
-        int marginTop = getHeaderMarginTop();
-        if (marginTop > 0) {
-            ValueAnimator valueAnimator = ValueAnimator.ofInt(marginTop, 0);
+        int paddingTop = getHeaderPaddingTop();
+        if (paddingTop > 0) {
+            ValueAnimator valueAnimator = ValueAnimator.ofInt(paddingTop, 0);
             valueAnimator.setDuration(MAX_GOBACK_DURATION);
             valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 @Override
                 public void onAnimationUpdate(ValueAnimator animation) {
-                    LinearLayout.LayoutParams headerParams = (LayoutParams) mHeaderView.getLayoutParams();
-                    headerParams.topMargin = (int) animation.getAnimatedValue();
-                    mHeaderView.requestLayout();
+                    int value = (int) animation.getAnimatedValue();
+                    setHeaderPaddingTop(value);
                 }
             });
             valueAnimator.addListener(new AnimatorListenerAdapter() {
@@ -195,14 +146,13 @@ public class PullRefreshView extends LinearLayout {
         if (!isReleased() && !isRefreshing()) {
             return;
         }
-        ValueAnimator valueAnimator = ValueAnimator.ofInt(getHeaderMarginTop(), -mHeaderHeight);
+        ValueAnimator valueAnimator = ValueAnimator.ofInt(getHeaderPaddingTop(), -mHeaderHeight);
         valueAnimator.setDuration(MAX_GOBACK_DURATION);
         valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
-                LinearLayout.LayoutParams headerParams = (LayoutParams) mHeaderView.getLayoutParams();
-                headerParams.topMargin = (int) animation.getAnimatedValue();
-                mHeaderView.requestLayout();
+                int value = (int) animation.getAnimatedValue();
+                setHeaderPaddingTop(value);
             }
         });
         valueAnimator.addListener(new AnimatorListenerAdapter() {
@@ -231,21 +181,109 @@ public class PullRefreshView extends LinearLayout {
     }
 
     private void offsetHeader(int diff) {
-        LinearLayout.LayoutParams headerParams = (LayoutParams) mHeaderView.getLayoutParams();
-        if (headerParams.topMargin >= MAX_PULL_LENGTH || headerParams.topMargin < -mHeaderHeight) {
+        if (getHeaderPaddingTop() >= MAX_PULL_LENGTH) {
             return;
         }
         Log.e(TAG, "diff = " + diff);
-        headerParams.topMargin += diff;
+        setHeaderPaddingTop(getHeaderPaddingTop() + diff);
         mHeaderView.requestLayout();
     }
 
     private boolean shouldRefresh() {
-        return getHeaderMarginTop() >= 0;
+        return getHeaderPaddingTop() >= 0;
     }
 
-    private int getHeaderMarginTop() {
-        LinearLayout.LayoutParams headerParams = (LayoutParams) mHeaderView.getLayoutParams();
-        return headerParams.topMargin;
+    private int getHeaderPaddingTop() {
+        return mHeaderView.getPaddingTop();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        return mContentView.dispatchTouchEvent(event);
+    }
+
+    private class InternalListView extends ListView {
+
+        private int mDownY;
+        private int mLastY;
+        private boolean mIsDragging = false;
+
+        public InternalListView(Context context, ListView origin) {
+            super(context);
+            ListView.LayoutParams layoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            FrameLayout frameLayout = new FrameLayout(getContext());
+            frameLayout.addView(mHeaderView);
+            frameLayout.setLayoutParams(layoutParams);
+            addHeaderView(frameLayout);
+            setId(origin.getId());
+        }
+
+        @Override
+        public boolean dispatchTouchEvent(MotionEvent event) {
+            int action = event.getActionMasked();
+            int y = (int) event.getRawY();
+            Log.e(TAG, "y = " + y);
+            switch (action) {
+                case MotionEvent.ACTION_DOWN:
+                    mDownY = y;
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    int motionY = y - mDownY;
+                    int diff = y - mLastY;
+                    if (!mIsDragging && Math.abs(motionY) > mTouchSlop && ((motionY > 0 && isFirstAtTop()) ||
+                            isFirstAtTop() && motionY < 0 && getHeaderPaddingTop() > -mHeaderHeight)) {
+                        mIsDragging = true;
+                    }
+
+                    if (mIsDragging) {
+                        mState = REFRESH_PULL;
+                        offsetHeader(diff);
+                        Log.e(TAG, "top = " + getHeaderPaddingTop());
+                        if (getHeaderPaddingTop() <= -mHeaderHeight) {
+                            mState = REFRESH_IDLE;
+                            mIsDragging = false;
+                            setHeaderPaddingTop(-mHeaderHeight);
+                        }
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    mIsDragging = false;
+                    if (isPulling()) {
+                        mState = REFRESH_RELEASED;
+                        if (shouldRefresh()) {
+                            mState = REFRESH_REFRESHING;
+                            goBackAndShowRefresh();
+                        } else {
+                            headerGoBack();
+                        }
+                    }
+                    break;
+            }
+            mLastY = y;
+            return mIsDragging || super.dispatchTouchEvent(event);
+        }
+
+        public boolean isFirstAtTop() {
+            if (getChildCount() < 2) {
+                return false;
+            }
+
+            View view = getChildAt(1);
+            Log.e(TAG, "first = " + getFirstVisiblePosition() + ", top = " + view.getTop());
+            return view.getTop() < mTouchSlop && getFirstVisiblePosition() <= 1;
+        }
+    }
+
+    private class InternalScrollView extends ScrollView {
+
+        public InternalScrollView(Context context) {
+            super(context);
+        }
+
+        public boolean isFirstAtTop() {
+            Log.e(TAG, "scrollY = " + mContentView.getScrollY());
+            return mContentView.getScrollY() <= 0;
+        }
     }
 }

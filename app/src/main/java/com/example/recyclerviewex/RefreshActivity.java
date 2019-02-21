@@ -20,14 +20,14 @@ public class RefreshActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_refresh);
-//        listView = findViewById(R.id.listview);
-//        listView.setAdapter(new UserListAdapter(this));
+        listView = findViewById(R.id.listview);
+        listView.setAdapter(new UserListAdapter(this));
 //        scrollView = findViewById(R.id.scrollView);
 
-        recyclerView = findViewById(R.id.recyclerView);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
-        recyclerView.setLayoutManager(layoutManager);
-        recyclerView.setAdapter(adapter = new RecyclerAdapter(this));
+//        recyclerView = findViewById(R.id.recyclerView);
+//        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+//        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+//        recyclerView.setLayoutManager(layoutManager);
+//        recyclerView.setAdapter(adapter = new RecyclerAdapter(this));
     }
 }
