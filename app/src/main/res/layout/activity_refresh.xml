@@ -24,22 +24,29 @@
 
     </RelativeLayout>
 
-    <ListView
-        android:id="@+id/listview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-    </ListView>
-
-    <!--<FrameLayout-->
+    <!--<ListView-->
+        <!--android:id="@+id/listview"-->
         <!--android:layout_width="match_parent"-->
         <!--android:layout_height="match_parent">-->
 
-        <!--<TextView-->
-            <!--android:text="我是内容"-->
-            <!--android:layout_gravity="center"-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content" />-->
+    <!--</ListView>-->
 
-    <!--</FrameLayout>-->
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <FrameLayout
+            android:background="@color/colorAccent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:text="我是内容"
+                android:gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="1200dp" />
+
+        </FrameLayout>
+    </ScrollView>
+
 </com.example.recyclerviewex.widget.PullRefreshView>
