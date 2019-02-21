@@ -20,9 +20,9 @@ public class RefreshActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_refresh);
-        listView = findViewById(R.id.listview);
-        listView.setAdapter(new UserListAdapter(this));
-//        scrollView = findViewById(R.id.scrollView);
+//        listView = findViewById(R.id.listview);
+//        listView.setAdapter(new UserListAdapter(this));
+        scrollView = findViewById(R.id.scrollView);
 
 //        recyclerView = findViewById(R.id.recyclerView);
 //        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
