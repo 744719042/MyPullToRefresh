@@ -10,10 +10,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
 import android.widget.LinearLayout;
-import android.widget.ListView;
-import android.widget.ScrollView;
 
 import com.example.recyclerviewex.utils.Utils;
 
@@ -160,20 +157,8 @@ public class PullRefreshView extends LinearLayout {
     }
 
     public boolean isFirstAtTop() {
-        if (mContentView instanceof AbsListView) {
-            ListView listView = (ListView) mContentView;
-            if (listView.getChildCount() > 0) {
-                View child = listView.getChildAt(0);
-                if (listView.getFirstVisiblePosition() == 0 && child.getTop() == 0) {
-                    return true;
-                }
-            }
-        } else if (mContentView instanceof ScrollView) {
-            Log.e(TAG, "scrollY = " + mContentView.getScrollY());
-            return mContentView.getScrollY() <= 0;
-        }
-
-        return false;
+        Log.e(TAG, "scrollY = " + mContentView.getScrollY());
+        return mContentView.getScrollY() <= 0;
     }
 
 
