@@ -1,7 +1,6 @@
 package com.example.recyclerviewex.recycler;
 
 import android.content.Context;
-import android.support.v7.widget.RecyclerView;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,6 +8,7 @@ import android.view.ViewGroup;
 
 
 import com.example.recyclerviewex.R;
+import com.example.recyclerviewex.base.BaseRecyclerAdapter;
 import com.example.recyclerviewex.model.User;
 
 import java.util.ArrayList;
@@ -18,7 +18,7 @@ import java.util.List;
  * Created by Administrator on 2018/2/1.
  */
 
-public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerViewHolder> {
+public class UserRecyclerAdapter extends BaseRecyclerAdapter<UserRecyclerViewHolder> {
     public static List<User> users = new ArrayList<User>() {
         {
             add(new User(R.drawable.beach, "刘备", "唯贤唯德，能服于人"));
@@ -45,19 +45,19 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerViewHolder> {
     private Context context;
     private LayoutInflater inflater;
 
-    public RecyclerAdapter(Context context) {
+    public UserRecyclerAdapter(Context context) {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
     }
 
     @Override
-    public RecyclerViewHolder onCreateViewHolder(final ViewGroup parent, int viewType) {
+    public UserRecyclerViewHolder onCreateViewHolder(final ViewGroup parent, int viewType) {
         View itemView = inflater.inflate(R.layout.user_item, parent, false);
-        return new RecyclerViewHolder(itemView);
+        return new UserRecyclerViewHolder(itemView);
     }
 
     @Override
-    public void onBindViewHolder(RecyclerViewHolder holder, int position) {
+    public void onBindViewHolder(UserRecyclerViewHolder holder, int position) {
         holder.bindView(users.get(position));
     }
 

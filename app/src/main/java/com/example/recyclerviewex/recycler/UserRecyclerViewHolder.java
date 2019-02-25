@@ -1,25 +1,24 @@
 package com.example.recyclerviewex.recycler;
 
-import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.example.recyclerviewex.R;
+import com.example.recyclerviewex.base.BaseRecyclerViewHolder;
 import com.example.recyclerviewex.model.User;
 
 /**
  * Created by Administrator on 2018/2/1.
  */
 
-public class RecyclerViewHolder extends RecyclerView.ViewHolder {
+public class UserRecyclerViewHolder extends BaseRecyclerViewHolder {
     ImageView portrait;
     TextView name;
     TextView desc;
 
-    public RecyclerViewHolder(View itemView) {
+    public UserRecyclerViewHolder(View itemView) {
         super(itemView);
-
         name = (TextView) itemView.findViewById(R.id.name);
         desc = (TextView) itemView.findViewById(R.id.desc);
         portrait = (ImageView) itemView.findViewById(R.id.portrait);
