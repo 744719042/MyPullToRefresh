@@ -4,8 +4,12 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.support.v4.view.ViewCompat;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -15,6 +19,8 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ScrollView;
 
+import com.example.recyclerviewex.R;
+import com.example.recyclerviewex.base.BaseRecyclerView;
 import com.example.recyclerviewex.utils.Utils;
 
 public class PullRefreshView extends FrameLayout {
@@ -79,17 +85,11 @@ public class PullRefreshView extends FrameLayout {
     }
 
     private void initViews() {
-        if (getChildCount() != 2) {
-            throw new IllegalArgumentException("子控件必须只有一个");
-        }
-        mHeaderView = getChildAt(0);
-        mContentView = getChildAt(1);
-
-        mHeaderView.measure(0, 0);
-        mHeaderHeight = Utils.dp2px(100);
-        removeView(mHeaderView);
-        setHeaderPaddingTop(-mHeaderHeight);
-
+//        if (getChildCount() != 1) {
+//            throw new IllegalArgumentException("子控件必须只有一个");
+//        }
+//        mHeaderView = getChildAt(0);
+        mContentView = getChildAt(0);
         FrameLayout.LayoutParams contentParams = (LayoutParams) mContentView.getLayoutParams();
         contentParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
         contentParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -99,6 +99,14 @@ public class PullRefreshView extends FrameLayout {
             mContentView = new InternalListView(getContext(), (ListView) mContentView);
         } else if (mContentView instanceof ScrollView) {
             mContentView = new InternalScrollView(getContext(), (ScrollView) mContentView);
+        } else if (mContentView instanceof RecyclerView) {
+            mContentView = new InternalRecyclerView(getContext(), (RecyclerView) mContentView);
+            InternalRecyclerView recyclerView = (InternalRecyclerView) mContentView;
+            mHeaderView = recyclerView.getHeaderView();
+            mHeaderView.measure(0, 0);
+            mHeaderHeight = Utils.dp2px(100);
+//            removeView(mHeaderView);
+            setHeaderPaddingTop(-mHeaderHeight);
         }
 
         mContentView.setLayoutParams(contentParams);
@@ -337,6 +345,75 @@ public class PullRefreshView extends FrameLayout {
         public boolean isFirstAtTop() {
             Log.e(TAG, "scrollY = " + mContentView.getScrollY());
             return mContentView.getScrollY() <= 0;
+        }
+    }
+
+    private class InternalRecyclerView extends BaseRecyclerView {
+        private int mDownY;
+        private int mLastY;
+        private boolean mIsDragging = false;
+        private View mHeaderView;
+
+        public InternalRecyclerView(Context context, RecyclerView origin) {
+            super(context);
+            setId(origin.getId());
+            setLayoutManager(new LinearLayoutManager(context));
+            mHeaderView = LayoutInflater.from(context).inflate(R.layout.layout_header, this, false);
+            addHeaderView(mHeaderView);
+        }
+
+        @Override
+        public boolean dispatchTouchEvent(MotionEvent event) {
+            int action = event.getActionMasked();
+            int y = (int) event.getRawY();
+            Log.e(TAG, "y = " + y);
+            switch (action) {
+                case MotionEvent.ACTION_DOWN:
+                    mDownY = y;
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    int motionY = y - mDownY;
+                    int diff = y - mLastY;
+                    if (!mIsDragging && Math.abs(motionY) > mTouchSlop && ((motionY > 0 && isFirstAtTop()) ||
+                            isFirstAtTop() && motionY < 0 && getHeaderPaddingTop() > -mHeaderHeight)) {
+                        mIsDragging = true;
+                    }
+
+                    if (mIsDragging) {
+                        mState = REFRESH_PULL;
+                        offsetHeader(diff);
+                        Log.e(TAG, "top = " + getHeaderPaddingTop());
+                        if (getHeaderPaddingTop() <= -mHeaderHeight) {
+                            mState = REFRESH_IDLE;
+                            mIsDragging = false;
+                            setHeaderPaddingTop(-mHeaderHeight);
+                        }
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    mIsDragging = false;
+                    if (isPulling()) {
+                        mState = REFRESH_RELEASED;
+                        if (shouldRefresh()) {
+                            mState = REFRESH_REFRESHING;
+                            goBackAndShowRefresh();
+                        } else {
+                            headerGoBack();
+                        }
+                    }
+                    break;
+            }
+            mLastY = y;
+            return mIsDragging || super.dispatchTouchEvent(event);
+        }
+
+        public boolean isFirstAtTop() {
+            return !canScrollVertically(-1);
+        }
+
+        public View getHeaderView() {
+            return mHeaderView;
         }
     }
 }

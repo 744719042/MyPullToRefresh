@@ -16,7 +16,7 @@ import com.example.recyclerviewex.recycler.UserRecyclerAdapter;
 public class RefreshActivity extends AppCompatActivity {
     private ListView listView;
     private ScrollView scrollView;
-    private BaseRecyclerView recyclerView;
+    private RecyclerView recyclerView;
     private UserRecyclerAdapter adapter;
     private View headerView;
 
@@ -31,8 +31,8 @@ public class RefreshActivity extends AppCompatActivity {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         recyclerView.setLayoutManager(layoutManager);
-        headerView = LayoutInflater.from(this).inflate(R.layout.layout_header, recyclerView, false);
-        recyclerView.addHeaderView(headerView);
+//        headerView = LayoutInflater.from(this).inflate(R.layout.layout_header, recyclerView, false);
+//        recyclerView.addHeaderView(headerView);
         recyclerView.setAdapter(adapter = new UserRecyclerAdapter(this));
     }
 }
